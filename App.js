@@ -19,42 +19,41 @@ import {
   Provider as PaperProvider,
   Button,
   IconButton,
-  useTheme
+  useTheme,
 } from "react-native-paper";
 import * as Haptics from "expo-haptics";
 import BottomSheet from "react-native-simple-bottom-sheet";
 import Icon from "react-native-vector-icons/Feather";
 
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 export default function App() {
+  //! Make sheets go down by default
 
-  
-
-  const panelRef = useRef(false);
+  const panelRef = useRef();
 
   const settingsPanelRef = useRef(false);
 
   const [panelOpacity, setPanelOpacity] = React.useState(1);
 
-
-
-
   const [isSci, setIsSci] = React.useState(true);
   const [isTrig, setIsTrig] = React.useState(false);
 
-  const [historyCalc, setHistoryCalc] = React.useState([]);
   const [historyArr, setHistoryArr] = React.useState([]);
 
   const [UITheme, setUITheme] = React.useState("#82d0f1");
 
-  const [theme, setTheme] = React.useState("dark");
+  const [theme, setTheme] = React.useState(getThemeAsync());
 
-  const [flipNums, setFlipNums] = React.useState(true);
+  const [flipNums, setFlipNums] = React.useState(false);
 
   const [resultText, setResultText] = React.useState("");
   const [calculationText, setCalculationText] = React.useState("");
+
+  const [startState, setStartState] = React.useState(1);
+
+  const [showHints, setShowHints] = React.useState();
 
   const [messages, setMessages] = useState([]);
 
@@ -65,31 +64,63 @@ export default function App() {
   };
 
   function isUsingBrightColors(color) {
-    return (color == '#ffd6a5' || color == '#fdffb6' || color == "#caffbf")
+    return color == "#ffd6a5" || color == "#fdffb6" || color == "#caffbf";
+  }
+  
+  function getHints(){
+    AsyncStorage.getItem('start').then((value) => {
+
+      setShowHints(JSON.parse(value))
+    }
+  
+  )}
+
+  function setHints(value){
+    AsyncStorage.setItem('start', JSON.stringify(value));
   }
 
+  function getThemeAsync(){
+
+    AsyncStorage.getItem('theme').then((value) => {
+
+      setTheme(!JSON.parse(value))
+    }
+
+  )}
+
+  function setThemeAsync(value){
+    AsyncStorage.setItem('theme', JSON.stringify(value));
+
+  }
 
   var calculateResult = () => {
-    let result = Number(
-      eval(
-        calculationText
-          .replaceAll("•", "*")
-          .replaceAll("÷", "/")
-          .replaceAll("^", "**")
-          .replaceAll("^2", "**2")
-          .replaceAll("^3", "**3")
-          .replaceAll("π", "Math.PI")
-          .replaceAll("sin(", "Math.sin(")
-          .replaceAll("cos(", "Math.cos(")
-          .replaceAll("tan(", "Math.tan(")
-          .replaceAll("asin(", "Math.asin(")
-          .replaceAll("acos(", "Math.acos(")
-          .replaceAll("atan(", "Math.atan(")
-      ).toFixed(5)
-    );
+    let result;
 
-    setResultText(result);
-    setHistoryArr([...historyArr, result]);
+    try {
+      result = Number(
+        eval(
+          calculationText
+            .replaceAll("•", "*")
+            .replaceAll("÷", "/")
+            .replaceAll("^", "**")
+            .replaceAll("^2", "**2")
+            .replaceAll("^3", "**3")
+            .replaceAll("π", "Math.PI")
+            .replaceAll("sin(", "Math.sin(")
+            .replaceAll("cos(", "Math.cos(")
+            .replaceAll("tan(", "Math.tan(")
+            .replaceAll("asin(", "Math.asin(")
+            .replaceAll("acos(", "Math.acos(")
+            .replaceAll("atan(", "Math.atan(")
+        ).toFixed(5)
+      );
+      setResultText(result);
+      setHistoryArr([...historyArr, result]);
+    } catch (error) {
+      setMessages(["Invalid Syntax"]);
+    }
+
+   
   };
 
   var setCalcText = (string) => {
@@ -107,22 +138,199 @@ export default function App() {
     } else {
       setCalculationText(calculationText + string);
     }
-    console.log(calculationText);
   };
 
   function clearText() {
     setCalculationText("");
   }
 
+  function deleteString() {
 
-
+    if (
+      calculationText.slice(-4) == "sin(" ||
+      calculationText.slice(-4) == "cos(" ||
+      calculationText.slice(-4) == "tan(" ||
+      calculationText.slice(-4) == "asin" ||
+      calculationText.slice(-4) == "acos" ||
+      calculationText.slice(-4) == "atan"
+    ) {
+      setCalculationText(calculationText.slice(0, -4));
+    } else {
+      setCalculationText(
+        calculationText.substring(0, calculationText.length - 1)
+      );
+    }
+  }
 
   return (
-    
     <View
       style={{ height: "100%", backgroundColor: theme ? "#121212" : "#fff" }}
     >
-      
+      <View
+        style={{
+          
+          position: "absolute",
+          height: "100%",
+          width: "100%",
+          backgroundColor: "black",
+          opacity: 0.7,
+          zIndex: 100,
+          display: (startState < 4) ? "flex" : "none",
+        }}
+      >
+        <View
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "",
+            alignItems: "center",
+            marginTop: 50,
+            height: "90%",
+          }}
+        >
+          <View style={{ display: "flex", justifyContent: "flex-end" }}>
+            <View
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                marginTop: 20,
+                justifyContent: "space-between",
+                width: Dimensions.get("window").width - 40,
+              }}
+            >
+              <View style={{ display: "flex", flexDirection: "row" }}>
+                <Icon
+                  suppressHighlighting
+                  name="settings"
+                  style={{ marginLeft: 10, opacity: startState == 1 ? 1 : 0 }}
+                  size={30}
+                  color={theme ? "#fff" : "#000"}
+                />
+              </View>
+
+              <Icon
+                suppressHighlighting
+                name={"clock"}
+                size={30}
+                style={{
+                  marginLeft: 10,
+                  marginRight: 10,
+                  opacity: startState == 2 ? 1 : 0,
+                }}
+                color={theme ? "#fff" : "#000"}
+              />
+            </View>
+          </View>
+          <View
+            style={{
+              flexDirection: "row",
+              display: "flex",
+              justifyContent: "flex-start",
+              display: startState == 1 ? "" : "none",
+            }}
+          >
+            <View>
+              <Icon
+                name="corner-left-up"
+                style={{ marginTop: 15 }}
+                size={50}
+                color={theme ? "#fff" : "#000"}
+              />
+            </View>
+            <Text
+              style={{
+                color: theme ? "#fff" : "#000",
+                textAlign: "center",
+                width: 285,
+                marginTop: 40,
+              }}
+            >
+              This is the settings button, it allows access to the menu to
+              change the look and feel of your calculator
+            </Text>
+          </View>
+          <View
+            style={{
+              flexDirection: "row",
+              display: "flex",
+              justifyContent: "flex-start",
+              display: startState == 2 ? "flex" : "none",
+            }}
+          >
+            <Text
+              style={{
+                color: theme ? "#fff" : "#000",
+                textAlign: "center",
+                width: 290,
+                marginTop: 40,
+              }}
+            >
+              This is the history button, it shows recent calculations you have made
+            </Text>
+            <View>
+              <Icon
+                name="corner-right-up"
+                style={{ marginTop: 15 }}
+                size={50}
+                color={theme ? "#fff" : "#000"}
+              />
+            </View>
+            
+          </View>
+          <View
+            style={{
+              flexDirection: "row",
+              display: "flex",
+              justifyContent: "flex-start",
+              display: startState == 3 ? "flex" : "none",
+            }}
+          >
+            <Text
+              style={{
+                color: theme ? "#fff" : "#000",
+                textAlign: "center",
+                width: 290,
+              }}
+            >
+              Here are some tips: {"\n\n"}
+              
+              1. You can hold press on the backspace key to delete the entire entry {"\n\n"}
+              2. The final result will appear in big numbers above the calculation text {"\n\n"}
+              3. You can change the color, background, and number orientation at any time
+
+
+            </Text>
+            
+            
+          </View>
+          <IconButton
+            iconColor="#fff"
+            style={[
+              styles.equalsBtn,
+              { backgroundColor: UITheme, marginTop: 20 },
+            ]}
+            icon={startState < 3 ? "arrow-right" : "close"}
+            onPress={() => {
+              if(startState == 1){
+                setStartState(2)
+                
+              }
+              if(startState == 2){
+                setStartState(3)
+
+              }
+              if(startState == 3){
+                setStartState(4)
+                setHints(false)
+              }
+
+              Haptics.impactAsync();
+            }}
+          />
+          
+        </View>
+      </View>
+
       <PaperProvider theme={primaryBtnTheme}>
         <View
           style={{
@@ -172,8 +380,6 @@ export default function App() {
                 <Icon
                   suppressHighlighting
                   onPress={() => {
-
-
                     Haptics.impactAsync(),
                       settingsPanelRef.current.togglePanel();
                   }}
@@ -182,7 +388,6 @@ export default function App() {
                   size={30}
                   color={theme ? "#fff" : "#000"}
                 />
-                
               </View>
 
               <Icon
@@ -248,7 +453,6 @@ export default function App() {
               }}
             >
               <Button
-              
                 mode={isSci ? "contained" : "outlined"}
                 style={[
                   isSci
@@ -324,7 +528,6 @@ export default function App() {
                 />
 
                 <CircleButton
-                  disabled={calculationText.length > 0 ? false : true}
                   theme={theme}
                   text={"-"}
                   style={styles.regularBtn}
@@ -338,13 +541,13 @@ export default function App() {
                   style={styles.regularBtn}
                   onLongPress={() => {
                     setCalculationText("");
-                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                    Haptics.notificationAsync(
+                      Haptics.NotificationFeedbackType.Warning
+                    );
                   }}
                   onPress={() => {
                     if (calculationText.length > 0) {
-                      setCalculationText(
-                        calculationText.substring(0, calculationText.length - 1)
-                      );
+                      deleteString();
                     } else {
                       setResultText("");
                     }
@@ -500,7 +703,6 @@ export default function App() {
                   style={[styles.equalsBtn, { backgroundColor: UITheme }]}
                   icon="equal"
                   onPress={() => {
-                    setHistoryCalc(calculationText);
 
                     calculateResult(), Haptics.impactAsync();
                   }}
@@ -538,13 +740,13 @@ export default function App() {
                   style={styles.regularBtn}
                   onLongPress={() => {
                     setCalculationText("");
-                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                    Haptics.notificationAsync(
+                      Haptics.NotificationFeedbackType.Warning
+                    );
                   }}
                   onPress={() => {
                     if (calculationText.length > 0) {
-                      setCalculationText(
-                        calculationText.substring(0, calculationText.length - 1)
-                      );
+                      deleteString();
                     } else {
                       setResultText("");
                     }
@@ -565,7 +767,7 @@ export default function App() {
               </View>
 
               <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <CircleButton
+                <CircleButton
                   theme={theme}
                   text={"1"}
                   style={styles.regularBtn}
@@ -636,7 +838,7 @@ export default function App() {
                 />
               </View>
               <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <CircleButton
+                <CircleButton
                   theme={theme}
                   text={"7"}
                   style={styles.regularBtn}
@@ -660,7 +862,7 @@ export default function App() {
                     setCalcText("9");
                   }}
                 />
-                
+
                 <IconButton
                   disabled={calculationText.length > 0 ? false : true}
                   style={theme ? styles.darkSymbolBtn : styles.symbolBtn}
@@ -742,9 +944,7 @@ export default function App() {
                   }}
                   onPress={() => {
                     if (calculationText.length > 0) {
-                      setCalculationText(
-                        calculationText.substring(0, calculationText.length - 1)
-                      );
+                      deleteString();
                     } else {
                       setResultText("");
                     }
@@ -764,12 +964,12 @@ export default function App() {
                 />
               </View>
               <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <CircleButton
+                <CircleButton
                   theme={theme}
                   text={"("}
                   style={styles.regularBtn}
                   onPress={() => {
-                    setCalcText(")");
+                    setCalcText("(");
                   }}
                 />
                 <CircleButton
@@ -780,7 +980,14 @@ export default function App() {
                     setCalcText(")");
                   }}
                 />
-                <IconButton style={styles.blankBtn} />
+                <CircleButton
+                  theme={theme}
+                  text={"π"}
+                  style={styles.regularBtn}
+                  onPress={() => {
+                    setCalcText("π");
+                  }}
+                />
 
                 <IconButton
                   disabled={calculationText.length > 0 ? false : true}
@@ -794,7 +1001,7 @@ export default function App() {
                 />
               </View>
               <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <CircleButton
+                <CircleButton
                   theme={theme}
                   text={"x^2"}
                   style={styles.regularBtn}
@@ -819,9 +1026,9 @@ export default function App() {
                     setCalcText("^");
                   }}
                 />
-                
 
                 <IconButton
+                  disabled={calculationText.length > 0 ? false : true}
                   style={theme ? styles.darkSymbolBtn : styles.symbolBtn}
                   icon="minus"
                   iconColor={theme ? "#fff" : "#000"}
@@ -864,6 +1071,7 @@ export default function App() {
                 />
 
                 <IconButton
+                  disabled={calculationText.length > 0 ? false : true}
                   style={theme ? styles.darkSymbolBtn : styles.symbolBtn}
                   icon="plus"
                   iconColor={theme ? "#fff" : "#000"}
@@ -928,12 +1136,15 @@ export default function App() {
 
         <View style={{ flex: 1 }}>
           <BottomSheet
+            isOpen={false}
             sliderMaxHeight={Dimensions.get("window").height * 0.8}
             sliderMinHeight={0}
             animationDuration={600}
             animation={Easing.bezier(0.22, 1, 0.36, 1)}
-            wrapperStyle={{ backgroundColor: theme ? "#1e1e1e" : "#fff", opacity: panelOpacity }}
-            
+            wrapperStyle={{
+              backgroundColor: theme ? "#1e1e1e" : "#fff",
+              opacity: panelOpacity,
+            }}
             ref={(ref) => (panelRef.current = ref)}
           >
             <View
@@ -955,9 +1166,13 @@ export default function App() {
               >
                 History
               </Text>
-              <IconButton iconColor={theme ? "white": "black"} onPress={() => {panelRef.current.togglePanel(), Haptics.impactAsync()}} icon="close">
-
-              </IconButton>
+              <IconButton
+                iconColor={theme ? "white" : "black"}
+                onPress={() => {
+                  panelRef.current.togglePanel(), Haptics.impactAsync();
+                }}
+                icon="close"
+              ></IconButton>
             </View>
 
             <View
@@ -995,37 +1210,40 @@ export default function App() {
                 }}
               ></View>
             </View>
-            <View style={{marginLeft: 5,
-                marginRight: 5,}}>
-            <Button
-              onPress={() => {
-                panelRef.current.togglePanel(), Haptics.impactAsync(), setHistoryArr([]);
-              }}
-              style={{
-                width: "100%",
-                backgroundColor: "#ff686b",
-                marginBottom: 40,
-                
-                borderRadius: 20,
-                padding: 10,
-              }}
-            >
-              <Text
-                style={{ textAlign: "center", fontSize: 20, color: "white" }}
-              >
-                Clear History
-              </Text>
+            <View style={{ marginLeft: 5, marginRight: 5 }}>
+              <Button
+                onPress={() => {
+                  panelRef.current.togglePanel(),
+                    Haptics.impactAsync(),
+                    setHistoryArr([]);
+                }}
+                style={{
+                  width: "100%",
+                  backgroundColor: "#ff686b",
+                  marginBottom: 40,
 
-            </Button>
+                  borderRadius: 20,
+                  padding: 10,
+                }}
+              >
+                <Text
+                  style={{ textAlign: "center", fontSize: 20, color: "white" }}
+                >
+                  Clear History
+                </Text>
+              </Button>
             </View>
-            
           </BottomSheet>
         </View>
         <View style={{ flex: 0 }}>
           <BottomSheet
+            isOpen={false}
             animationDuration={600}
             animation={Easing.bezier(0.22, 1, 0.36, 1)}
-            wrapperStyle={{ backgroundColor: theme ? "#1e1e1e" : "#fff", opacity: panelOpacity }}
+            wrapperStyle={{
+              backgroundColor: theme ? "#1e1e1e" : "#fff",
+              opacity: panelOpacity,
+            }}
             sliderMaxHeight={Dimensions.get("window").height * 0.9}
             sliderMinHeight={0}
             ref={(ref) => (settingsPanelRef.current = ref)}
@@ -1039,6 +1257,7 @@ export default function App() {
                 paddingRight: 20,
               }}
             >
+               
               <Text
                 style={{
                   paddingLeft: 10,
@@ -1049,9 +1268,14 @@ export default function App() {
               >
                 Settings
               </Text>
-              <IconButton iconColor={theme ? "white": "black"} onPress={() => {settingsPanelRef.current.togglePanel(), Haptics.impactAsync()}} icon="close">
-
-              </IconButton>
+              
+              <IconButton
+                iconColor={theme ? "white" : "black"}
+                onPress={() => {
+                  settingsPanelRef.current.togglePanel(), Haptics.impactAsync();
+                }}
+                icon="close"
+              ></IconButton>
             </View>
             <Text
               style={{
@@ -1230,33 +1454,46 @@ export default function App() {
               <Button
                 mode={!theme ? "contained" : "outlined"}
                 style={
-                  !theme ? {
-                    marginLeft: 5,
-                    marginRight: 5,
-                    width: Dimensions.get("window").width / 2 - 40,
-                    borderColor: "#000",
-                    textColor: "#fff",
-                    backgroundColor: UITheme,
-                    borderRadius: 20,
-                    padding: 10,
-                  } : {
-                    marginLeft: 5,
-                    marginRight: 5,
-                    width: Dimensions.get("window").width / 2 - 40,
-                    borderColor: UITheme,
-                    textColor: "#fff",
-                    borderRadius: 20,
-                    padding: 10,
-
-                  }
+                  !theme
+                    ? {
+                        marginLeft: 5,
+                        marginRight: 5,
+                        width: Dimensions.get("window").width / 2 - 40,
+                        borderColor: "#000",
+                        textColor: "#fff",
+                        backgroundColor: UITheme,
+                        borderRadius: 20,
+                        padding: 10,
+                      }
+                    : {
+                        marginLeft: 5,
+                        marginRight: 5,
+                        width: Dimensions.get("window").width / 2 - 40,
+                        borderColor: UITheme,
+                        textColor: "#fff",
+                        borderRadius: 20,
+                        padding: 10,
+                      }
                 }
                 onPress={() => {
-                  setTheme(false)
+                  setThemeAsync(false)
+
+                  setTheme(false);
                 }}
               >
                 <Text
                   style={
-                    theme ? {color: isUsingBrightColors(UITheme) ? UITheme : UITheme} : {color: isUsingBrightColors(UITheme) ? "black" : 'white'}
+                    theme
+                      ? {
+                          color: isUsingBrightColors(UITheme)
+                            ? UITheme
+                            : UITheme,
+                        }
+                      : {
+                          color: isUsingBrightColors(UITheme)
+                            ? "black"
+                            : "white",
+                        }
                   }
                 >
                   Light
@@ -1265,35 +1502,45 @@ export default function App() {
               <Button
                 mode={theme ? "contained" : "outlined"}
                 style={
-                  theme ? {
-                    marginLeft: 5,
-                    marginRight: 5,
-                    width: Dimensions.get("window").width / 2 - 40,
-                    borderColor: UITheme,
-                    textColor: "#fff",
-                    backgroundColor: UITheme,
-                    borderRadius: 20,
-                    padding: 10,
-
-                  } : {
-                    marginLeft: 5,
-                    marginRight: 5,
-                    width: Dimensions.get("window").width / 2 - 40,
-                    borderColor: UITheme,
-                    textColor: "#fff",
-                    borderRadius: 20,
-                    padding: 10,
-
-
-                  }
+                  theme
+                    ? {
+                        marginLeft: 5,
+                        marginRight: 5,
+                        width: Dimensions.get("window").width / 2 - 40,
+                        borderColor: UITheme,
+                        textColor: "#fff",
+                        backgroundColor: UITheme,
+                        borderRadius: 20,
+                        padding: 10,
+                      }
+                    : {
+                        marginLeft: 5,
+                        marginRight: 5,
+                        width: Dimensions.get("window").width / 2 - 40,
+                        borderColor: UITheme,
+                        textColor: "#fff",
+                        borderRadius: 20,
+                        padding: 10,
+                      }
                 }
                 onPress={() => {
-                  setTheme(true)
+                  setThemeAsync(true)
+                  setTheme(true);
                 }}
               >
-                <Text 
+                <Text
                   style={
-                    theme ? {color: isUsingBrightColors(UITheme) ? 'black' : 'white'} : {color: isUsingBrightColors(UITheme) ? 'black' : UITheme}
+                    theme
+                      ? {
+                          color: isUsingBrightColors(UITheme)
+                            ? "black"
+                            : "white",
+                        }
+                      : {
+                          color: isUsingBrightColors(UITheme)
+                            ? "black"
+                            : UITheme,
+                        }
                   }
                 >
                   Dark
@@ -1323,33 +1570,44 @@ export default function App() {
               <Button
                 mode={flipNums ? "contained" : "outlined"}
                 style={
-                  flipNums ? {
-                    marginLeft: 5,
-                    marginRight: 5,
-                    width: Dimensions.get("window").width / 2 - 40,
-                    borderColor: "#000",
-                    textColor: "#fff",
-                    backgroundColor: UITheme,
-                    borderRadius: 20,
-                    padding: 10,
-                  } : {
-                    marginLeft: 5,
-                    marginRight: 5,
-                    width: Dimensions.get("window").width / 2 - 40,
-                    borderColor: UITheme,
-                    textColor: "#fff",
-                    borderRadius: 20,
-                    padding: 10,
-
-                  }
+                  flipNums
+                    ? {
+                        marginLeft: 5,
+                        marginRight: 5,
+                        width: Dimensions.get("window").width / 2 - 40,
+                        borderColor: "#000",
+                        textColor: "#fff",
+                        backgroundColor: UITheme,
+                        borderRadius: 20,
+                        padding: 10,
+                      }
+                    : {
+                        marginLeft: 5,
+                        marginRight: 5,
+                        width: Dimensions.get("window").width / 2 - 40,
+                        borderColor: UITheme,
+                        textColor: "#fff",
+                        borderRadius: 20,
+                        padding: 10,
+                      }
                 }
                 onPress={() => {
-                  setFlipNums(true)
+                  setFlipNums(true);
                 }}
               >
                 <Text
                   style={
-                    !flipNums ? {color: isUsingBrightColors(UITheme) ? UITheme : UITheme} : {color: isUsingBrightColors(UITheme) ? "black" : 'white'}
+                    !flipNums
+                      ? {
+                          color: isUsingBrightColors(UITheme)
+                            ? UITheme
+                            : UITheme,
+                        }
+                      : {
+                          color: isUsingBrightColors(UITheme)
+                            ? "black"
+                            : "white",
+                        }
                   }
                 >
                   Up
@@ -1358,35 +1616,44 @@ export default function App() {
               <Button
                 mode={!flipNums ? "contained" : "outlined"}
                 style={
-                  !flipNums ? {
-                    marginLeft: 5,
-                    marginRight: 5,
-                    width: Dimensions.get("window").width / 2 - 40,
-                    borderColor: UITheme,
-                    textColor: "#fff",
-                    backgroundColor: UITheme,
-                    borderRadius: 20,
-                    padding: 10,
-
-                  } : {
-                    marginLeft: 5,
-                    marginRight: 5,
-                    width: Dimensions.get("window").width / 2 - 40,
-                    borderColor: UITheme,
-                    textColor: "#fff",
-                    borderRadius: 20,
-                    padding: 10,
-
-
-                  }
+                  !flipNums
+                    ? {
+                        marginLeft: 5,
+                        marginRight: 5,
+                        width: Dimensions.get("window").width / 2 - 40,
+                        borderColor: UITheme,
+                        textColor: "#fff",
+                        backgroundColor: UITheme,
+                        borderRadius: 20,
+                        padding: 10,
+                      }
+                    : {
+                        marginLeft: 5,
+                        marginRight: 5,
+                        width: Dimensions.get("window").width / 2 - 40,
+                        borderColor: UITheme,
+                        textColor: "#fff",
+                        borderRadius: 20,
+                        padding: 10,
+                      }
                 }
                 onPress={() => {
-                  setFlipNums(false)
+                  setFlipNums(false);
                 }}
               >
-                <Text 
+                <Text
                   style={
-                    !flipNums ? {color: isUsingBrightColors(UITheme) ? 'black' : 'white'} : {color: isUsingBrightColors(UITheme) ? 'black' : UITheme}
+                    !flipNums
+                      ? {
+                          color: isUsingBrightColors(UITheme)
+                            ? "black"
+                            : "white",
+                        }
+                      : {
+                          color: isUsingBrightColors(UITheme)
+                            ? "black"
+                            : UITheme,
+                        }
                   }
                 >
                   Down
@@ -1418,7 +1685,11 @@ export default function App() {
                 }}
               >
                 <Text
-                  style={{ textAlign: "center", fontSize: 20, color: isUsingBrightColors(UITheme) ? 'black' : 'white'}  }
+                  style={{
+                    textAlign: "center",
+                    fontSize: 20,
+                    color: isUsingBrightColors(UITheme) ? "black" : "white",
+                  }}
                 >
                   Save
                 </Text>
@@ -1426,12 +1697,8 @@ export default function App() {
             </View>
           </BottomSheet>
         </View>
-        
       </PaperProvider>
-      
     </View>
-   
-
   );
 }
 
@@ -1514,7 +1781,6 @@ const CircleButton = (props) => (
     >
       {props.text}
     </Text>
-    
   </TouchableHighlight>
 );
 
