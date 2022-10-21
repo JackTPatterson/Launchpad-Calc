@@ -1,12 +1,12 @@
 import { StatusBar } from "expo-status-bar";
 import * as React from "react";
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState } from "react";
 
 import {
-  StyleSheet,
+
   Text,
   View,
-  TouchableHighlight,
+
   Dimensions,
   TouchableOpacity,
   Animated,
@@ -14,7 +14,6 @@ import {
   ScrollView,
 } from "react-native";
 import * as Clipboard from "expo-clipboard";
-
 import {
   Provider as PaperProvider,
   Button,
@@ -24,6 +23,8 @@ import {
 import * as Haptics from "expo-haptics";
 import BottomSheet from "react-native-simple-bottom-sheet";
 import Icon from "react-native-vector-icons/Feather";
+import styles from "./extras/styles";
+import CircleButton from "./extras/CircleButton";
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -42,25 +43,25 @@ export default function App() {
 
   const [historyArr, setHistoryArr] = React.useState([]);
 
-  const [UITheme, setUITheme] = React.useState("#82d0f1");
+  const [UITheme, setUITheme] = React.useState(getColorAsync());
 
-  const [theme, setTheme] = React.useState(getThemeAsync());
+  const [theme, setTheme] = React.useState((getThemeAsync()))
 
-  const [flipNums, setFlipNums] = React.useState(false);
+  const [flipNums, setFlipNums] = React.useState(getFlipAsync());
 
   const [resultText, setResultText] = React.useState("");
   const [calculationText, setCalculationText] = React.useState("");
 
   const [startState, setStartState] = React.useState(1);
 
-  const [showHints, setShowHints] = React.useState();
+  const [showHints, setShowHints] = React.useState(getHints());
 
   const [messages, setMessages] = useState([]);
 
   const primaryBtnTheme = useTheme({ colors: { primary: UITheme } });
 
-  const copyToClipboard = async () => {
-    await Clipboard.setStringAsync(resultText);
+  const copyToClipboard = async (text) => {
+    await Clipboard.setStringAsync(text);
   };
 
   function isUsingBrightColors(color) {
@@ -69,8 +70,7 @@ export default function App() {
   
   function getHints(){
     AsyncStorage.getItem('start').then((value) => {
-
-      setShowHints(JSON.parse(value))
+      return setShowHints(JSON.parse(value))
     }
   
   )}
@@ -83,13 +83,49 @@ export default function App() {
 
     AsyncStorage.getItem('theme').then((value) => {
 
-      setTheme(!JSON.parse(value))
+      return setTheme(JSON.parse(value))
     }
 
   )}
 
   function setThemeAsync(value){
     AsyncStorage.setItem('theme', JSON.stringify(value));
+
+  }
+
+  function getFlipAsync(){
+
+    AsyncStorage.getItem('flip').then((value) => {
+
+      return setFlipNums(JSON.parse(value))
+    }
+
+  )}
+
+  function setFlipAsync(value){
+    AsyncStorage.setItem('flip', JSON.stringify(value));
+
+  }
+
+  function getColorAsync(){
+
+    AsyncStorage.getItem('color').then((value) => {
+
+      if(value == null){
+        return setUITheme("#82d0f1")
+      }else{
+        return setUITheme((value))
+      }
+
+      
+    }
+
+  )}
+
+  
+
+  function setColorAsync(value){
+    AsyncStorage.setItem('color', value);
 
   }
 
@@ -112,10 +148,12 @@ export default function App() {
             .replaceAll("asin(", "Math.asin(")
             .replaceAll("acos(", "Math.acos(")
             .replaceAll("atan(", "Math.atan(")
+            .replaceAll("√(", "Math.sqrt(")
         ).toFixed(5)
       );
       setResultText(result);
-      setHistoryArr([...historyArr, result]);
+      //result != historyArr.slice(-1)[0] ? setHistoryArr([...historyArr, result]) : null;
+      setHistoryArr([...historyArr, result])
     } catch (error) {
       setMessages(["Invalid Syntax"]);
     }
@@ -125,15 +163,25 @@ export default function App() {
 
   var setCalcText = (string) => {
     if (
-      string == "π" &&
-      calculationText[calculationText.indexOf("π") - 1] == "•" &&
-      calculationText[calculationText.indexOf("π") - 1] == "+" &&
-      calculationText[calculationText.indexOf("π") - 1] == "-" &&
-      calculationText[calculationText.indexOf("π") - 1] == "÷" &&
-      calculationText[calculationText.indexOf("π") - 1] == "^" &&
-      calculationText[calculationText.indexOf("π") - 1] == "(" &&
-      calculationText[calculationText.indexOf("π") - 1] == ")"
+      string == "π" && calculationText.slice(-1) != "+" 
+      && calculationText.slice(-1) != "-" 
+      && calculationText.slice(-1) != "*" 
+      && calculationText.slice(-1) != "/" 
+      && calculationText.slice(-1) != "^" 
+      && calculationText.slice(-1) != "(" 
+      && calculationText.slice(-1) != ")" 
+      && calculationText.slice(-1) != "•" 
+      && calculationText.slice(-1) != "÷" 
+      && calculationText.slice(-1) != "sin(" 
+      && calculationText.slice(-1) != "cos(" 
+      && calculationText.slice(-1) != "tan(" 
+      && calculationText.slice(-1) != "asin(" 
+      && calculationText.slice(-1) != "acos(" 
+      && calculationText.slice(-1) != "atan(" 
+      && calculationText.slice(-1) != "√"
+      
     ) {
+
       setCalculationText(calculationText + "•" + string);
     } else {
       setCalculationText(calculationText + string);
@@ -175,7 +223,7 @@ export default function App() {
           backgroundColor: "black",
           opacity: 0.7,
           zIndex: 100,
-          display: (startState < 4) ? "flex" : "none",
+          display: (startState < 4 && showHints != 4) ? "flex" : "none",
         }}
       >
         <View
@@ -204,7 +252,7 @@ export default function App() {
                   name="settings"
                   style={{ marginLeft: 10, opacity: startState == 1 ? 1 : 0 }}
                   size={30}
-                  color={theme ? "#fff" : "#000"}
+                  color={'#fff'}
                 />
               </View>
 
@@ -217,7 +265,7 @@ export default function App() {
                   marginRight: 10,
                   opacity: startState == 2 ? 1 : 0,
                 }}
-                color={theme ? "#fff" : "#000"}
+                color={'#fff'}
               />
             </View>
           </View>
@@ -234,12 +282,12 @@ export default function App() {
                 name="corner-left-up"
                 style={{ marginTop: 15 }}
                 size={50}
-                color={theme ? "#fff" : "#000"}
+                color='#fff'
               />
             </View>
             <Text
               style={{
-                color: theme ? "#fff" : "#000",
+                color: !theme ? "#fff" : "#000",
                 textAlign: "center",
                 width: 285,
                 marginTop: 40,
@@ -259,7 +307,7 @@ export default function App() {
           >
             <Text
               style={{
-                color: theme ? "#fff" : "#000",
+                color: !theme ? "#fff" : "#000",
                 textAlign: "center",
                 width: 290,
                 marginTop: 40,
@@ -272,7 +320,7 @@ export default function App() {
                 name="corner-right-up"
                 style={{ marginTop: 15 }}
                 size={50}
-                color={theme ? "#fff" : "#000"}
+                color={'#fff'}
               />
             </View>
             
@@ -287,7 +335,7 @@ export default function App() {
           >
             <Text
               style={{
-                color: theme ? "#fff" : "#000",
+                color: !theme ? '#fff' : '#000',
                 textAlign: "center",
                 width: 290,
               }}
@@ -297,17 +345,15 @@ export default function App() {
               1. You can hold press on the backspace key to delete the entire entry {"\n\n"}
               2. The final result will appear in big numbers above the calculation text {"\n\n"}
               3. You can change the color, background, and number orientation at any time
-
-
             </Text>
             
             
           </View>
           <IconButton
-            iconColor="#fff"
+            iconColor={ '#fff' }
             style={[
               styles.equalsBtn,
-              { backgroundColor: UITheme, marginTop: 20 },
+              { backgroundColor: '#82d0f1', marginTop: 20 },
             ]}
             icon={startState < 3 ? "arrow-right" : "close"}
             onPress={() => {
@@ -321,7 +367,7 @@ export default function App() {
               }
               if(startState == 3){
                 setStartState(4)
-                setHints(false)
+                setHints(4)
               }
 
               Haptics.impactAsync();
@@ -413,7 +459,7 @@ export default function App() {
               <View>
                 <TouchableOpacity
                   onPress={() => {
-                    copyToClipboard();
+                    copyToClipboard(resultText);
                     Haptics.impactAsync();
                     setMessages(["Result Copied"]);
                   }}
@@ -493,7 +539,7 @@ export default function App() {
                     : styles.inactiveModeBtn
                 }
                 onPress={() => {
-                  setIsTrig(true), setIsSci(false), Haptics.selectionAsync();
+                  setIsTrig(true), setIsSci(false), Haptics.selectionAsync()
                 }}
               >
                 <Text
@@ -557,7 +603,7 @@ export default function App() {
                 ></CircleButton>
 
                 <IconButton
-                  disabled={calculationText.length > 0 ? false : true}
+                 
                   style={theme ? styles.darkSymbolBtn : styles.symbolBtn}
                   iconColor={theme ? "#fff" : "#000"}
                   icon="division"
@@ -594,7 +640,7 @@ export default function App() {
                 />
 
                 <IconButton
-                  disabled={calculationText.length > 0 ? false : true}
+                 
                   style={theme ? styles.darkSymbolBtn : styles.symbolBtn}
                   icon="close"
                   iconColor={theme ? "#fff" : "#000"}
@@ -629,7 +675,7 @@ export default function App() {
                   }}
                 />
                 <IconButton
-                  disabled={calculationText.length > 0 ? false : true}
+                 
                   style={theme ? styles.darkSymbolBtn : styles.symbolBtn}
                   iconColor={theme ? "#fff" : "#000"}
                   icon="minus"
@@ -664,7 +710,7 @@ export default function App() {
                   }}
                 />
                 <IconButton
-                  disabled={calculationText.length > 0 ? false : true}
+                 
                   style={theme ? styles.darkSymbolBtn : styles.symbolBtn}
                   iconColor={theme ? "#fff" : "#000"}
                   icon="plus"
@@ -698,8 +744,8 @@ export default function App() {
                 />
                 <IconButton style={styles.blankBtn} />
                 <IconButton
-                  disabled={calculationText.length > 0 ? false : true}
-                  iconColor="#fff"
+                 
+                 iconColor={ isUsingBrightColors(UITheme) ? "#000" : "#fff"}
                   style={[styles.equalsBtn, { backgroundColor: UITheme }]}
                   icon="equal"
                   onPress={() => {
@@ -726,7 +772,7 @@ export default function App() {
                 />
 
                 <CircleButton
-                  disabled={calculationText.length > 0 ? false : true}
+                 
                   theme={theme}
                   text={"-"}
                   style={styles.regularBtn}
@@ -756,7 +802,7 @@ export default function App() {
                 ></CircleButton>
 
                 <IconButton
-                  disabled={calculationText.length > 0 ? false : true}
+                 
                   style={theme ? styles.darkSymbolBtn : styles.symbolBtn}
                   iconColor={theme ? "#fff" : "#000"}
                   icon="division"
@@ -793,7 +839,7 @@ export default function App() {
                 />
 
                 <IconButton
-                  disabled={calculationText.length > 0 ? false : true}
+                 
                   style={theme ? styles.darkSymbolBtn : styles.symbolBtn}
                   icon="close"
                   iconColor={theme ? "#fff" : "#000"}
@@ -828,7 +874,7 @@ export default function App() {
                   }}
                 />
                 <IconButton
-                  disabled={calculationText.length > 0 ? false : true}
+                 
                   style={theme ? styles.darkSymbolBtn : styles.symbolBtn}
                   iconColor={theme ? "#fff" : "#000"}
                   icon="minus"
@@ -864,7 +910,7 @@ export default function App() {
                 />
 
                 <IconButton
-                  disabled={calculationText.length > 0 ? false : true}
+                 
                   style={theme ? styles.darkSymbolBtn : styles.symbolBtn}
                   iconColor={theme ? "#fff" : "#000"}
                   icon="plus"
@@ -898,12 +944,11 @@ export default function App() {
                 />
                 <IconButton style={styles.blankBtn} />
                 <IconButton
-                  disabled={calculationText.length > 0 ? false : true}
-                  iconColor="#fff"
+                 
+                  iconColor={ isUsingBrightColors(UITheme) ? "#000" : "#fff"}
                   style={[styles.equalsBtn, { backgroundColor: UITheme }]}
                   icon="equal"
                   onPress={() => {
-                    setHistoryCalc(calculationText);
 
                     calculateResult(), Haptics.impactAsync();
                   }}
@@ -927,7 +972,7 @@ export default function App() {
                 />
 
                 <CircleButton
-                  disabled={calculationText.length > 0 ? false : true}
+                 
                   theme={theme}
                   text={"-"}
                   style={styles.regularBtn}
@@ -954,7 +999,7 @@ export default function App() {
                 ></CircleButton>
 
                 <IconButton
-                  disabled={calculationText.length > 0 ? false : true}
+                 
                   style={theme ? styles.darkSymbolBtn : styles.symbolBtn}
                   icon="division"
                   iconColor={theme ? "#fff" : "#000"}
@@ -990,7 +1035,7 @@ export default function App() {
                 />
 
                 <IconButton
-                  disabled={calculationText.length > 0 ? false : true}
+                 
                   style={theme ? styles.darkSymbolBtn : styles.symbolBtn}
                   iconColor={theme ? "#fff" : "#000"}
                   icon="close"
@@ -1003,6 +1048,14 @@ export default function App() {
               <View style={{ flexDirection: "row", alignItems: "center" }}>
                 <CircleButton
                   theme={theme}
+                  text={"√"}
+                  style={styles.regularBtn}
+                  onPress={() => {
+                    setCalcText("√(");
+                  }}
+                />
+                <CircleButton
+                  theme={theme}
                   text={"x^2"}
                   style={styles.regularBtn}
                   onPress={() => {
@@ -1010,15 +1063,7 @@ export default function App() {
                   }}
                 />
                 <CircleButton
-                  theme={theme}
-                  text={"x^3"}
-                  style={styles.regularBtn}
-                  onPress={() => {
-                    setCalcText("^3");
-                  }}
-                />
-                <CircleButton
-                  disabled={calculationText.length > 0 ? false : true}
+                 
                   theme={theme}
                   text={"x^n"}
                   style={styles.regularBtn}
@@ -1028,7 +1073,7 @@ export default function App() {
                 />
 
                 <IconButton
-                  disabled={calculationText.length > 0 ? false : true}
+                 
                   style={theme ? styles.darkSymbolBtn : styles.symbolBtn}
                   icon="minus"
                   iconColor={theme ? "#fff" : "#000"}
@@ -1071,7 +1116,7 @@ export default function App() {
                 />
 
                 <IconButton
-                  disabled={calculationText.length > 0 ? false : true}
+                 
                   style={theme ? styles.darkSymbolBtn : styles.symbolBtn}
                   icon="plus"
                   iconColor={theme ? "#fff" : "#000"}
@@ -1119,8 +1164,8 @@ export default function App() {
                   }}
                 />
                 <IconButton
-                  disabled={calculationText.length > 0 ? false : true}
-                  iconColor="#fff"
+                 
+                 iconColor={ isUsingBrightColors(UITheme) ? "#000" : "#fff"}
                   style={[styles.equalsBtn, { backgroundColor: UITheme }]}
                   icon="equal"
                   onPress={() => {
@@ -1153,7 +1198,6 @@ export default function App() {
                 flexDirection: "row",
                 justifyContent: "space-between",
                 alignItems: "center",
-                paddingRight: 20,
               }}
             >
               <Text
@@ -1181,6 +1225,7 @@ export default function App() {
                 paddingTop: 30,
               }}
             >
+              <ScrollView style={{height: 400}}>
               {historyArr.map((item, index) => {
                 return (
                   <View
@@ -1192,6 +1237,9 @@ export default function App() {
                       marginBottom: 20,
                     }}
                   >
+                    <TouchableOpacity
+                      onPress={() => {copyToClipboard(item), Haptics.impactAsync();}}
+                      >
                     <Text
                       style={{
                         fontSize: 20,
@@ -1200,9 +1248,12 @@ export default function App() {
                     >
                       {item}
                     </Text>
+                    </TouchableOpacity>
                   </View>
+                  
                 );
               })}
+              </ScrollView>
               <View
                 style={{
                   marginTop: 10,
@@ -1219,7 +1270,7 @@ export default function App() {
                 }}
                 style={{
                   width: "100%",
-                  backgroundColor: "#ff686b",
+                  backgroundColor: UITheme,
                   marginBottom: 40,
 
                   borderRadius: 20,
@@ -1227,7 +1278,7 @@ export default function App() {
                 }}
               >
                 <Text
-                  style={{ textAlign: "center", fontSize: 20, color: "white" }}
+                  style={{ textAlign: "center", fontSize: 20, color: isUsingBrightColors(UITheme) ? "black" : "white" }}
                 >
                   Clear History
                 </Text>
@@ -1254,7 +1305,6 @@ export default function App() {
                 flexDirection: "row",
                 justifyContent: "space-between",
                 alignItems: "center",
-                paddingRight: 20,
               }}
             >
                
@@ -1313,7 +1363,7 @@ export default function App() {
                     borderRadius: "100",
                   }}
                   onPress={() => {
-                    setUITheme("#ff686b"), Haptics.impactAsync();
+                    setUITheme("#ff686b"), Haptics.impactAsync(), setColorAsync("#ff686b")
                   }}
                 ></IconButton>
 
@@ -1328,7 +1378,7 @@ export default function App() {
                     borderRadius: "100",
                   }}
                   onPress={() => {
-                    setUITheme("#ffadad"), Haptics.impactAsync();
+                    setUITheme("#ffadad"), Haptics.impactAsync(), setColorAsync("#ffadad")
                   }}
                 ></IconButton>
                 <IconButton
@@ -1342,7 +1392,7 @@ export default function App() {
                     borderRadius: "100",
                   }}
                   onPress={() => {
-                    setUITheme("#ffd6a5"), Haptics.impactAsync();
+                    setUITheme("#ffd6a5"), Haptics.impactAsync(), setColorAsync("#ffd6a5")
                   }}
                 ></IconButton>
                 <IconButton
@@ -1356,7 +1406,7 @@ export default function App() {
                     borderRadius: "100",
                   }}
                   onPress={() => {
-                    setUITheme("#fdffb6"), Haptics.impactAsync();
+                    setUITheme("#fdffb6"), Haptics.impactAsync(), setColorAsync("#fdffb6")
                   }}
                 ></IconButton>
                 <IconButton
@@ -1370,7 +1420,7 @@ export default function App() {
                     borderRadius: "100",
                   }}
                   onPress={() => {
-                    setUITheme("#caffbf"), Haptics.impactAsync();
+                    setUITheme("#caffbf"), Haptics.impactAsync(), setColorAsync("#caffbf")
                   }}
                 ></IconButton>
                 <IconButton
@@ -1384,7 +1434,7 @@ export default function App() {
                     borderRadius: "100",
                   }}
                   onPress={() => {
-                    setUITheme("#82d0f1"), Haptics.impactAsync();
+                    setUITheme("#82d0f1"), Haptics.impactAsync() , setColorAsync("#82d0f1")
                   }}
                 ></IconButton>
                 <IconButton
@@ -1412,7 +1462,7 @@ export default function App() {
                     borderRadius: "100",
                   }}
                   onPress={() => {
-                    setUITheme("#bdb2ff"), Haptics.impactAsync();
+                    setUITheme("#bdb2ff"), Haptics.impactAsync(), setColorAsync("#bdb2ff")
                   }}
                 ></IconButton>
                 <IconButton
@@ -1426,7 +1476,7 @@ export default function App() {
                     borderRadius: "100",
                   }}
                   onPress={() => {
-                    setUITheme("#ffc6ff"), Haptics.impactAsync();
+                    setUITheme("#ffc6ff"), Haptics.impactAsync(), setColorAsync("#ffc6ff")
                   }}
                 ></IconButton>
               </ScrollView>
@@ -1484,11 +1534,7 @@ export default function App() {
                 <Text
                   style={
                     theme
-                      ? {
-                          color: isUsingBrightColors(UITheme)
-                            ? UITheme
-                            : UITheme,
-                        }
+                      ? UITheme
                       : {
                           color: isUsingBrightColors(UITheme)
                             ? "black"
@@ -1524,8 +1570,10 @@ export default function App() {
                       }
                 }
                 onPress={() => {
-                  setThemeAsync(true)
+                  
                   setTheme(true);
+                  setThemeAsync(true)
+                  console.log(getThemeAsync())
                 }}
               >
                 <Text
@@ -1568,9 +1616,9 @@ export default function App() {
               }}
             >
               <Button
-                mode={flipNums ? "contained" : "outlined"}
+                mode={!flipNums ? "contained" : "outlined"}
                 style={
-                  flipNums
+                  !flipNums
                     ? {
                         marginLeft: 5,
                         marginRight: 5,
@@ -1592,31 +1640,32 @@ export default function App() {
                       }
                 }
                 onPress={() => {
-                  setFlipNums(true);
+                  setFlipAsync(false)
+                  setFlipNums(false);
                 }}
               >
                 <Text
                   style={
-                    !flipNums
-                      ? {
-                          color: isUsingBrightColors(UITheme)
-                            ? UITheme
-                            : UITheme,
-                        }
-                      : {
-                          color: isUsingBrightColors(UITheme)
-                            ? "black"
-                            : "white",
-                        }
+                    theme && flipNums
+                      ? UITheme
+                      : (!theme && flipNums ? {
+                        color: isUsingBrightColors(UITheme)
+                          ? "black"
+                          : UITheme
+                      } : {
+                        color: isUsingBrightColors(UITheme)
+                          ? "black"
+                          : 'white',
+                      })
                   }
                 >
-                  Up
+                  Down
                 </Text>
               </Button>
               <Button
-                mode={!flipNums ? "contained" : "outlined"}
+                mode={flipNums ? "contained" : "outlined"}
                 style={
-                  !flipNums
+                  flipNums
                     ? {
                         marginLeft: 5,
                         marginRight: 5,
@@ -1638,25 +1687,27 @@ export default function App() {
                       }
                 }
                 onPress={() => {
-                  setFlipNums(false);
+                  setFlipNums(true);
+                  setFlipAsync(true)
+
                 }}
               >
                 <Text
                   style={
-                    !flipNums
-                      ? {
-                          color: isUsingBrightColors(UITheme)
-                            ? "black"
-                            : "white",
-                        }
-                      : {
-                          color: isUsingBrightColors(UITheme)
-                            ? "black"
-                            : UITheme,
-                        }
+                    theme && !flipNums
+                      ? UITheme
+                      : (!theme && !flipNums ? {
+                        color: isUsingBrightColors(UITheme)
+                          ? "black"
+                          : UITheme
+                      } : {
+                        color: isUsingBrightColors(UITheme)
+                          ? "black"
+                          : 'white',
+                      })
                   }
                 >
-                  Down
+                  Up
                 </Text>
               </Button>
             </View>
@@ -1759,212 +1810,5 @@ const Message = (props) => {
   );
 };
 
-const CircleButton = (props) => (
-  <TouchableHighlight
-    onLongPress={props.onLongPress}
-    disabled={props.disabled}
-    activeOpacity={0.6}
-    underlayColor="#DDDDDD"
-    style={styles.regularBtn}
-    onPress={props.onPress}
-  >
-    <Text
-      style={[
-        props.theme
-          ? !props.disabled
-            ? styles.btnDarkText
-            : styles.btnDisabledText
-          : !props.disabled
-          ? styles.btnText
-          : styles.btnDarkDisabledText,
-      ]}
-    >
-      {props.text}
-    </Text>
-  </TouchableHighlight>
-);
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-  },
 
-  symbolBtn: {
-    backgroundColor: "#efefee",
-    width: 60,
-    height: 60,
-    borderRadius: 100,
-    marginLeft: 15,
-    marginRight: 15,
-    fontWeight: "bold",
-  },
-
-  darkSymbolBtn: {
-    backgroundColor: "#1e1e1e",
-    width: 60,
-    height: 60,
-    borderRadius: 100,
-    marginLeft: 15,
-    marginRight: 15,
-    fontWeight: "bold",
-  },
-
-  blankBtn: {
-    backgroundColor: "transparent",
-    width: 60,
-    height: 60,
-    borderRadius: 100,
-    marginLeft: 15,
-    marginRight: 15,
-    fontWeight: "bold",
-  },
-
-  regularBtn: {
-    backgroundColor: "transparent",
-    height: 60,
-    width: 60,
-    borderRadius: 100,
-    textColor: "#000",
-    marginLeft: 15,
-    marginRight: 15,
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  darkBtn: {
-    backgroundColor: "#fff",
-    height: 60,
-    width: 60,
-    borderRadius: 100,
-    marginLeft: 15,
-    marginRight: 15,
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  equalsBtn: {
-    height: 60,
-    width: 60,
-    borderRadius: 100,
-    textColor: "#fff",
-    marginLeft: 15,
-    marginRight: 15,
-  },
-
-  trigText: {
-    color: "#000",
-    fontSize: 10,
-  },
-
-  btnText: {
-    color: "#000",
-    fontSize: 20,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-
-  btnDarkText: {
-    color: "#fff",
-    fontSize: 20,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-
-  acText: {
-    fontSize: 25,
-    fontWeight: "semibold",
-    textAlign: "center",
-  },
-
-  inactiveModeBtn: {
-    marginLeft: 5,
-    marginRight: 5,
-    width: Dimensions.get("window").width / 2 - 40,
-    borderColor: "#000",
-    textColor: "#000",
-    marginBottom: 10,
-  },
-
-  activeModeBtn: {
-    marginLeft: 5,
-    marginRight: 5,
-    width: Dimensions.get("window").width / 2 - 40,
-    borderColor: "#000",
-    textColor: "#fff",
-    backgroundColor: "#000",
-    marginBottom: 10,
-  },
-
-  inactiveModeDarkBtn: {
-    marginLeft: 5,
-    marginRight: 5,
-    width: Dimensions.get("window").width / 2 - 40,
-    borderColor: "#fff",
-    textColor: "#fff",
-    marginBottom: 10,
-  },
-
-  activeModeDarkBtn: {
-    marginLeft: 5,
-    marginRight: 5,
-    width: Dimensions.get("window").width / 2 - 40,
-    borderColor: "#000",
-    textColor: "#000",
-    backgroundColor: "#fff",
-    marginBottom: 10,
-  },
-
-  activeModeDarkBtn: {
-    marginLeft: 5,
-    marginRight: 5,
-    width: Dimensions.get("window").width / 2 - 40,
-    borderColor: "#000",
-    textColor: "#000",
-    backgroundColor: "#fff",
-    marginBottom: 10,
-  },
-
-  activeModeText: {
-    color: "#fff",
-    fontSize: 15,
-  },
-
-  inactiveModeText: {
-    color: "#000",
-    fontSize: 15,
-  },
-
-  activeModeDarkText: {
-    color: "#000",
-    fontSize: 15,
-  },
-
-  inactiveModeDarkText: {
-    color: "#fff",
-    fontSize: 15,
-  },
-
-  btnDisabledText: {
-    color: "#efefee",
-    fontSize: 20,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-
-  btnDarkDisabledText: {
-    color: "#f3f1f6",
-    fontSize: 20,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-
-  equalsText: {
-    color: "#fff",
-    fontSize: 30,
-  },
-});

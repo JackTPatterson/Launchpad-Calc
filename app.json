@@ -4,10 +4,10 @@
     "slug": "Calc",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon1.png",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash2.png",
+      "image": "./assets/splash.png",
       "backgroundColor": "#000"
     },
     "updates": {
@@ -18,16 +18,17 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "userInterfaceStyle": "automatic"
+      "userInterfaceStyle": "automatic",
+      "bundleIdentifier": "Calq"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#FFFFFF"
       }
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/icon.png"
     }
   }
 }
