@@ -198,9 +198,9 @@ export default function App() {
       calculationText.slice(-4) == "sin(" ||
       calculationText.slice(-4) == "cos(" ||
       calculationText.slice(-4) == "tan(" ||
-      calculationText.slice(-4) == "asin" ||
-      calculationText.slice(-4) == "acos" ||
-      calculationText.slice(-4) == "atan"
+      calculationText.slice(-5) == "asin(" ||
+      calculationText.slice(-5) == "acos(" ||
+      calculationText.slice(-5) == "atan("
     ) {
       setCalculationText(calculationText.slice(0, -4));
     } else {
@@ -1101,7 +1101,7 @@ export default function App() {
                   onPress={() => {
                     //setResultText(Math.cos(eval(calculationText)).toFixed(5)),
                     setCalcText("cos(");
-                    clearText(), Haptics.selectionAsync();
+                    Haptics.selectionAsync();
                   }}
                 />
                 <CircleButton
@@ -1111,7 +1111,7 @@ export default function App() {
                   onPress={() => {
                     //setResultText(Math.tan(eval(calculationText)).toFixed(5)),
                     setCalcText("tan(");
-                    clearText(), Haptics.selectionAsync();
+                    Haptics.selectionAsync();
                   }}
                 />
 
